@@ -60,6 +60,14 @@ app.use('/api/evaluations', evaluationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/trainer', trainerRoutes);
 
+// Root routes
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to CapstoneHub Backend API' });
+});
+app.get('/api', (req, res) => {
+  res.json({ message: 'CapstoneHub API is online' });
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
