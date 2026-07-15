@@ -18,6 +18,8 @@ const submissionRoutes = require('./src/routes/submission.routes');
 const evaluationRoutes = require('./src/routes/evaluation.routes');
 const reportRoutes = require('./src/routes/report.routes');
 const trainerRoutes = require('./src/routes/trainer.routes');
+const dailyLogRoutes = require('./src/routes/dailyLog.routes');
+const docRequestRoutes = require('./src/routes/docRequest.routes');
 
 const app = express();
 
@@ -59,6 +61,8 @@ app.use('/api/submissions', submissionRoutes);
 app.use('/api/evaluations', evaluationRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/trainer', trainerRoutes);
+app.use('/api/daily-logs', dailyLogRoutes);
+app.use('/api/doc-requests', docRequestRoutes);
 
 // Root routes
 app.get('/', (req, res) => {
