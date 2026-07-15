@@ -16,9 +16,9 @@ const sendTLCredentials = async (email, username, password, projectName) => {
   const loginLink = `${(process.env.FRONTEND_URL || 'http://localhost:5173').trim()}/login`;
   
   const mailOptions = {
-    from: `"CapstoneHub" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@capstonehub.dev'}>`,
+    from: `"Ethnotech ProjectSpace" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@capstonehub.dev'}>`,
     to: email,
-    subject: `Welcome to CapstoneHub — Team Lead Account Created`,
+    subject: `Welcome to Ethnotech ProjectSpace — Team Lead Account Created`,
     html: `
       <!DOCTYPE html>
       <html>
@@ -41,7 +41,7 @@ const sendTLCredentials = async (email, username, password, projectName) => {
       <body>
         <div class="card">
           <div class="header">
-            <span class="logo">CapstoneHub</span>
+            <span class="logo">Ethnotech ProjectSpace</span>
           </div>
           <h2>Welcome to your workspace!</h2>
           <p>An administrator has created a **Team Lead** account for you in the Capstone Project: <strong>${projectName}</strong>.</p>
@@ -62,7 +62,7 @@ const sendTLCredentials = async (email, username, password, projectName) => {
           </p>
           
           <div class="footer">
-            © ${new Date().getFullYear()} CapstoneHub. All rights reserved.
+            © ${new Date().getFullYear()} Ethnotech ProjectSpace. All rights reserved.
           </div>
         </div>
       </body>
@@ -92,7 +92,7 @@ const sendTLCredentials = async (email, username, password, projectName) => {
  */
 const sendMemberInvitation = async (email, name, teamName, projectName, acceptLink) => {
   const mailOptions = {
-    from: `"CapstoneHub" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@capstonehub.dev'}>`,
+    from: `"Ethnotech ProjectSpace" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@capstonehub.dev'}>`,
     to: email,
     subject: `Invitation to Join Team: ${teamName}`,
     html: `
@@ -115,7 +115,7 @@ const sendMemberInvitation = async (email, name, teamName, projectName, acceptLi
       <body>
         <div class="card">
           <div class="header">
-            <span class="logo">CapstoneHub</span>
+            <span class="logo">Ethnotech ProjectSpace</span>
           </div>
           <h2>Hello ${name},</h2>
           <p>You have been invited to join the team <strong>${teamName}</strong> for the Capstone Project: <strong>${projectName}</strong>.</p>
@@ -131,7 +131,7 @@ const sendMemberInvitation = async (email, name, teamName, projectName, acceptLi
           </p>
           
           <div class="footer">
-            © ${new Date().getFullYear()} CapstoneHub. All rights reserved.
+            © ${new Date().getFullYear()} Ethnotech ProjectSpace. All rights reserved.
           </div>
         </div>
       </body>

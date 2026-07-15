@@ -1,7 +1,7 @@
 {
-  "name": "capstonehub-backend",
+  "name": "ethnotech-projectspace-backend",
   "version": "1.0.0",
-  "description": "CapstoneHub backend API — Node.js + Express + MongoDB",
+  "description": "Ethnotech ProjectSpace backend API — Node.js + Express + MongoDB",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

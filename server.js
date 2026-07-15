@@ -66,10 +66,10 @@ app.use('/api/doc-requests', docRequestRoutes);
 
 // Root routes
 app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to CapstoneHub Backend API' });
+  res.json({ message: 'Welcome to Ethnotech ProjectSpace Backend API' });
 });
 app.get('/api', (req, res) => {
-  res.json({ message: 'CapstoneHub API is online' });
+  res.json({ message: 'Ethnotech ProjectSpace API is online' });
 });
 
 // Health check
