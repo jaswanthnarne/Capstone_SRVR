@@ -6,7 +6,8 @@ const docSubmissionSchema = new mongoose.Schema(
     teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', required: true },
     fileUrl: { type: String, required: true },
     fileName: { type: String, required: true },
-    fileSize: { type: Number, required: true } // in MB
+    fileSize: { type: Number, required: true }, // in MB
+    changeCount: { type: Number, default: 0 }
   },
   { timestamps: true }
 );

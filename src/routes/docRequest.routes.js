@@ -8,7 +8,8 @@ const {
   getTeamDocRequests,
   submitDoc,
   getRequestSubmissions,
-  deleteDocRequest
+  deleteDocRequest,
+  resetSubmissionLimit,
 } = require('../controllers/docRequest.controller');
 
 // Trainer routes
@@ -16,6 +17,7 @@ router.get('/trainer', authenticate, requireRole('trainer'), getTrainerDocReques
 router.post('/trainer', authenticate, requireRole('trainer'), createDocRequest);
 router.delete('/trainer/:id', authenticate, requireRole('trainer'), deleteDocRequest);
 router.get('/trainer/submissions/:requestId', authenticate, requireRole('trainer'), getRequestSubmissions);
+router.post('/trainer/reset', authenticate, requireRole('trainer'), resetSubmissionLimit);
 
 // Team lead routes
 router.get('/team', authenticate, requireRole('teamlead'), getTeamDocRequests);

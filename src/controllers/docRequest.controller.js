@@ -80,6 +80,7 @@ const getTeamDocRequests = async (req, res) => {
             fileUrl: submission.fileUrl,
             fileName: submission.fileName,
             fileSize: submission.fileSize,
+            changeCount: submission.changeCount || 0,
             submittedAt: submission.createdAt
           } : null
         };
@@ -111,6 +112,15 @@ const submitDoc = async (req, res) => {
 
     if (!req.file) {
       return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    // Enforce modification limit (Max 3 uploads/changes)
+    const existingSubmission = await DocSubmission.findOne({ requestId, teamId: req.user.id });
+    if (existingSubmission && existingSubmission.changeCount >= 3) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'You have reached the maximum modification limit of 3 uploads/changes for this document. Please contact the administrator/trainer to reset your upload limit.' 
+      });
     }
 
     const fileSizeInMB = req.file.size / (1024 * 1024);
@@ -145,7 +155,8 @@ const submitDoc = async (req, res) => {
           fileUrl: req.file.path,
           fileName: req.file.originalname,
           fileSize: parseFloat(fileSizeInMB.toFixed(2))
-        }
+        },
+        $inc: { changeCount: 1 }
       },
       { new: true, upsert: true, runValidators: true }
     );
@@ -196,11 +207,40 @@ const deleteDocRequest = async (req, res) => {
   }
 };
 
+// Trainer/Admin: Reset changeCount for a doc submission back to 0
+const resetSubmissionLimit = async (req, res) => {
+  try {
+    if (req.user.role !== 'trainer') {
+      return res.status(403).json({ success: false, message: 'Only trainers can reset submission limits' });
+    }
+
+    const { teamId, requestId } = req.body;
+    if (!teamId || !requestId) {
+      return res.status(400).json({ success: false, message: 'teamId and requestId are required' });
+    }
+
+    const submission = await DocSubmission.findOneAndUpdate(
+      { requestId, teamId },
+      { $set: { changeCount: 0 } },
+      { new: true }
+    );
+
+    if (!submission) {
+      return res.status(404).json({ success: false, message: 'Submission not found for this team and request' });
+    }
+
+    res.status(200).json({ success: true, message: 'Document upload limit has been reset successfully.', data: submission });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   createDocRequest,
   getTrainerDocRequests,
   getTeamDocRequests,
   submitDoc,
   getRequestSubmissions,
-  deleteDocRequest
+  deleteDocRequest,
+  resetSubmissionLimit,
 };

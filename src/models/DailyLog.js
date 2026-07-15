@@ -11,6 +11,7 @@ const dailyLogSchema = new mongoose.Schema(
     teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', required: true },
     date: { type: String, required: true }, // Format: YYYY-MM-DD
     logs: [memberLogSchema],
+    changeCount: { type: Number, default: 0 }
   },
   { timestamps: true }
 );

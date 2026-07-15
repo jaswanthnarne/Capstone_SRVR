@@ -21,13 +21,23 @@ const saveDailyLog = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Team not found' });
     }
 
-    // Update existing daily log or create new one
+    // Enforce modification limit (Max 3 saves/edits)
+    const existingLog = await DailyLog.findOne({ teamId: team._id, date });
+    if (existingLog && existingLog.changeCount >= 3) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'You have reached the maximum modification limit of 3 submissions/edits for this log date. Please contact the administrator/trainer to reset your limit.' 
+      });
+    }
+
+    // Update existing daily log or create new one, incrementing changeCount
     const dailyLog = await DailyLog.findOneAndUpdate(
       { teamId: team._id, date },
       { 
         $set: { 
           logs: logs.map(l => ({ name: l.name, rollNumber: l.rollNumber, taskDone: l.taskDone }))
-        } 
+        },
+        $inc: { changeCount: 1 }
       },
       { new: true, upsert: true, runValidators: true }
     );
@@ -67,8 +77,37 @@ const getTeamDailyLogs = async (req, res) => {
   }
 };
 
+// Trainer/Admin: Reset changeCount for a daily log back to 0
+const resetDailyLogLimit = async (req, res) => {
+  try {
+    if (req.user.role !== 'trainer') {
+      return res.status(403).json({ success: false, message: 'Only trainers can reset logs' });
+    }
+
+    const { teamId, date } = req.body;
+    if (!teamId || !date) {
+      return res.status(400).json({ success: false, message: 'teamId and date are required' });
+    }
+
+    const log = await DailyLog.findOneAndUpdate(
+      { teamId, date },
+      { $set: { changeCount: 0 } },
+      { new: true }
+    );
+
+    if (!log) {
+      return res.status(404).json({ success: false, message: 'Daily log not found for this date and team' });
+    }
+
+    res.status(200).json({ success: true, message: 'Daily log edit count has been reset successfully.', data: log });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   saveDailyLog,
   getMyDailyLogs,
   getTeamDailyLogs,
+  resetDailyLogLimit,
 };

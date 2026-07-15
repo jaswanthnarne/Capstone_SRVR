@@ -13,19 +13,60 @@ const transporter = nodemailer.createTransport({
  * Send credentials to Team Lead
  */
 const sendTLCredentials = async (email, username, password, projectName) => {
+  const loginLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+  
   const mailOptions = {
     from: `"CapstoneHub" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@capstonehub.dev'}>`,
     to: email,
     subject: `Welcome to CapstoneHub — Team Lead Account Created`,
     html: `
-      <h2>Welcome to CapstoneHub!</h2>
-      <p>An admin has created a Team Lead account for you in the Capstone Project: <strong>${projectName}</strong>.</p>
-      <p>Here are your login credentials:</p>
-      <ul>
-        <li><strong>Username:</strong> ${username}</li>
-        <li><strong>Password:</strong> ${password}</li>
-      </ul>
-      <p>Log in at: <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/login">${process.env.FRONTEND_URL || 'http://localhost:5173'}/login</a></p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #334155; margin: 0; padding: 24px; }
+          .card { background-color: #ffffff; border-radius: 16px; max-width: 520px; margin: 0 auto; padding: 36px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05); border: 1px solid #e2e8f0; }
+          .header { text-align: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
+          .logo { font-size: 24px; font-weight: 800; color: #2563eb; letter-spacing: -0.5px; text-decoration: none; }
+          h2 { font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px; }
+          p { font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 16px 0; }
+          .btn-container { text-align: center; margin: 24px 0; }
+          .btn { display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 12px 28px; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 10px; text-align: center; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+          .credentials { background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 18px; margin: 20px 0; }
+          .credentials-item { margin: 8px 0; font-size: 14px; font-family: monospace; color: #0f172a; }
+          .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="header">
+            <span class="logo">CapstoneHub</span>
+          </div>
+          <h2>Welcome to your workspace!</h2>
+          <p>An administrator has created a **Team Lead** account for you in the Capstone Project: <strong>${projectName}</strong>.</p>
+          <p>Below are your generated credentials. Please keep them secure:</p>
+          
+          <div class="credentials">
+            <div class="credentials-item"><strong>Username/LeadUsername:</strong> ${username}</div>
+            <div class="credentials-item"><strong>Password:</strong> ${password}</div>
+          </div>
+          
+          <div class="btn-container">
+            <a href="${loginLink}" target="_blank" class="btn">Sign In to Portal</a>
+          </div>
+          
+          <p style="font-size: 11px; color: #94a3b8; margin-top: 20px;">
+            If the button above does not work, copy and paste this link in your browser:<br/>
+            <a href="${loginLink}" style="color: #2563eb;">${loginLink}</a>
+          </p>
+          
+          <div class="footer">
+            © ${new Date().getFullYear()} CapstoneHub. All rights reserved.
+          </div>
+        </div>
+      </body>
+      </html>
     `,
   };
 
@@ -55,12 +96,46 @@ const sendMemberInvitation = async (email, name, teamName, projectName, acceptLi
     to: email,
     subject: `Invitation to Join Team: ${teamName}`,
     html: `
-      <h2>Hello ${name},</h2>
-      <p>You have been invited to join the team <strong>${teamName}</strong> for the Capstone Project: <strong>${projectName}</strong>.</p>
-      <p>Click the link below to accept the invitation and join the team:</p>
-      <p><a href="${acceptLink}" style="background: #6366f1; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; display: inline-block;">Accept Invitation</a></p>
-      <p>Or copy this link to your browser:</p>
-      <p>${acceptLink}</p>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #334155; margin: 0; padding: 24px; }
+          .card { background-color: #ffffff; border-radius: 16px; max-width: 520px; margin: 0 auto; padding: 36px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05); border: 1px solid #e2e8f0; }
+          .header { text-align: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
+          .logo { font-size: 24px; font-weight: 800; color: #2563eb; letter-spacing: -0.5px; text-decoration: none; }
+          h2 { font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px; }
+          p { font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 16px 0; }
+          .btn-container { text-align: center; margin: 24px 0; }
+          .btn { display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 12px 28px; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 10px; text-align: center; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+          .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="header">
+            <span class="logo">CapstoneHub</span>
+          </div>
+          <h2>Hello ${name},</h2>
+          <p>You have been invited to join the team <strong>${teamName}</strong> for the Capstone Project: <strong>${projectName}</strong>.</p>
+          <p>Click the button below to accept the invitation and join your team in the portal:</p>
+          
+          <div class="btn-container">
+            <a href="${acceptLink}" target="_blank" class="btn">Accept Invitation</a>
+          </div>
+          
+          <p style="font-size: 11px; color: #94a3b8; margin-top: 20px;">
+            If the button above does not work, copy and paste this link in your browser:<br/>
+            <a href="${acceptLink}" style="color: #2563eb;">${acceptLink}</a>
+          </p>
+          
+          <div class="footer">
+            © ${new Date().getFullYear()} CapstoneHub. All rights reserved.
+          </div>
+        </div>
+      </body>
+      </html>
     `,
   };
 
