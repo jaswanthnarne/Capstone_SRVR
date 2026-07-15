@@ -202,7 +202,7 @@ const inviteMember = async (req, res) => {
   });
 
   // 5. Send email
-  const acceptLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accept-invitation/${token}`;
+  const acceptLink = `${(process.env.FRONTEND_URL || 'http://localhost:5173').trim()}/accept-invitation/${token}`;
   await sendMemberInvitation(email, name, team.name, team.batchId.name, acceptLink);
 
   res.status(201).json({ success: true, message: 'Invitation sent successfully!', data: invitation });

@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
  * Send credentials to Team Lead
  */
 const sendTLCredentials = async (email, username, password, projectName) => {
-  const loginLink = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/login`;
+  const loginLink = `${(process.env.FRONTEND_URL || 'http://localhost:5173').trim()}/login`;
   
   const mailOptions = {
     from: `"CapstoneHub" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@capstonehub.dev'}>`,
