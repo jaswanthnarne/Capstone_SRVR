@@ -240,14 +240,23 @@ const seed = async () => {
     ]);
     console.log('🧹 Cleared all existing database collections');
 
-    // Create Trainer
-    const passwordHash = await bcrypt.hash('Eth@dm!n#56', 12);
+    // Create Trainer 1
+    const passwordHash1 = await bcrypt.hash('Eth@dm!n#56', 12);
     const trainer = await Trainer.create({
       name: 'Jaswanth Narne',
       email: 'admin@ethnotech.project.in',
-      passwordHash,
+      passwordHash: passwordHash1,
     });
-    console.log(`👤 Trainer created: ${trainer.email} / password: Eth@dm!n#56`);
+    console.log(`👤 Trainer 1 created: ${trainer.email} / password: Eth@dm!n#56`);
+
+    // Create Trainer 2
+    const passwordHash2 = await bcrypt.hash('Jashu@789', 12);
+    const trainer2 = await Trainer.create({
+      name: 'Jaswanth Narne',
+      email: 'narnejaswanth83@gmail.com',
+      passwordHash: passwordHash2,
+    });
+    console.log(`👤 Trainer 2 created: ${trainer2.email} / password: Jashu@789`);
 
     // Create Subjects
     const subjects = await Subject.insertMany([
@@ -328,7 +337,8 @@ const seed = async () => {
 
     console.log('\n🎉 Seed complete!');
     console.log('─'.repeat(50));
-    console.log('Trainer Login:     admin@ethnotech.project.in / Eth@dm!n#56');
+    console.log('Trainer 1 Login:   admin@ethnotech.project.in / Eth@dm!n#56');
+    console.log('Trainer 2 Login:   narnejaswanth83@gmail.com / Jashu@789');
     console.log('Team Lead Login:   leadalpha / teamlead123');
     console.log('─'.repeat(50));
   } catch (err) {

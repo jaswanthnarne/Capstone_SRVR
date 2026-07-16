@@ -33,11 +33,19 @@ app.use(cors({
     if (!origin) return callback(null, true);
     const allowedOrigins = [
       process.env.FRONTEND_URL,
+      'https://capstone.jaswanthnarne.online',
+      'https://frontend-jaswanth-s.vercel.app',
       'http://localhost:5173',
       'http://localhost:5174',
       'http://localhost:5175'
-    ].filter(Boolean);
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.startsWith('http://localhost:') || origin.endsWith('.vercel.app')) {
+    ].map(o => o ? o.trim() : '').filter(Boolean);
+
+    if (
+      allowedOrigins.indexOf(origin) !== -1 || 
+      origin.startsWith('http://localhost:') || 
+      origin.endsWith('.vercel.app') ||
+      origin.endsWith('jaswanthnarne.online')
+    ) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
