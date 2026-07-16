@@ -38,6 +38,8 @@ const teamSchema = new mongoose.Schema(
     roomNumber: { type: String, default: '' },
     courseName: { type: String, default: '' },
     problemChangeCount: { type: Number, default: 0 },
+    resetPasswordToken: { type: String, default: null },
+    resetPasswordExpires: { type: Date, default: null },
   },
   { timestamps: true }
 );

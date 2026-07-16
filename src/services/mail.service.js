@@ -154,4 +154,71 @@ const sendMemberInvitation = async (email, name, teamName, projectName, acceptLi
   }
 };
 
-module.exports = { sendTLCredentials, sendMemberInvitation };
+/**
+ * Send password reset link to user
+ */
+const sendPasswordResetEmail = async (email, name, resetLink) => {
+  const mailOptions = {
+    from: `"Ethnotech ProjectSpace" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@capstonehub.dev'}>`,
+    to: email,
+    subject: `Reset Your Password - Ethnotech ProjectSpace`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background-color: #f8fafc; color: #334155; margin: 0; padding: 24px; }
+          .card { background-color: #ffffff; border-radius: 16px; max-width: 520px; margin: 0 auto; padding: 36px; box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05); border: 1px solid #e2e8f0; }
+          .header { text-align: center; border-bottom: 1px solid #f1f5f9; padding-bottom: 20px; margin-bottom: 24px; }
+          .logo { font-size: 24px; font-weight: 800; color: #2563eb; letter-spacing: -0.5px; text-decoration: none; }
+          h2 { font-size: 20px; font-weight: 700; color: #0f172a; margin-top: 0; margin-bottom: 12px; }
+          p { font-size: 14px; line-height: 1.6; color: #475569; margin: 0 0 16px 0; }
+          .btn-container { text-align: center; margin: 24px 0; }
+          .btn { display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 12px 28px; font-size: 14px; font-weight: 600; text-decoration: none; border-radius: 10px; text-align: center; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+          .footer { text-align: center; font-size: 11px; color: #94a3b8; margin-top: 32px; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+        </style>
+      </head>
+      <body>
+        <div class="card">
+          <div class="header">
+            <span class="logo">Ethnotech ProjectSpace</span>
+          </div>
+          <h2>Password Reset Request</h2>
+          <p>Hello ${name},</p>
+          <p>We received a request to reset the password for your Ethnotech ProjectSpace account. Click the button below to choose a new password:</p>
+          
+          <div class="btn-container">
+            <a href="${resetLink}" target="_blank" class="btn">Reset Password</a>
+          </div>
+          
+          <p>This password reset link will expire in 1 hour. If you did not request a password reset, please ignore this email.</p>
+          
+          <p style="font-size: 11px; color: #94a3b8; margin-top: 20px;">
+            If the button above does not work, copy and paste this link in your browser:<br/>
+            <a href="${resetLink}" style="color: #2563eb;">${resetLink}</a>
+          </p>
+          
+          <div class="footer">
+            © ${new Date().getFullYear()} Ethnotech ProjectSpace. All rights reserved.
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+  };
+
+  try {
+    if (process.env.SMTP_PASS) {
+      await transporter.sendMail(mailOptions);
+      console.log(`✉️ Password reset email sent successfully to: ${email}`);
+    } else {
+      throw new Error('SMTP_PASS not configured');
+    }
+  } catch (err) {
+    console.error("❌ Nodemailer sendPasswordResetEmail error:", err);
+    console.log(`\n⚠️ [MAIL FALLBACK] Failed to send password reset email. Reset link: ${resetLink}\n`);
+  }
+};
+
+module.exports = { sendTLCredentials, sendMemberInvitation, sendPasswordResetEmail };

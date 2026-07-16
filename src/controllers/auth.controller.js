@@ -1,8 +1,10 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const Trainer = require('../models/Trainer');
 const Team = require('../models/Team');
 const Batch = require('../models/Batch');
+const { sendPasswordResetEmail } = require('../services/mail.service');
 
 const signToken = (payload) =>
   jwt.sign(payload, process.env.JWT_SECRET, {
@@ -197,4 +199,84 @@ const unifiedLogin = async (req, res) => {
   return res.status(401).json({ success: false, message: 'Invalid credentials' });
 };
 
-module.exports = { trainerLogin, teamRegister, teamLogin, trainerBootstrap, unifiedLogin };
+// ─── Forgot Password ──────────────────────────────────────────────────────────
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ success: false, message: 'Email is required' });
+  }
+
+  // 1. Search in Trainer (Admin)
+  let user = await Trainer.findOne({ email: email.toLowerCase() });
+  let role = 'trainer';
+
+  // 2. Search in Team (Team Lead)
+  if (!user) {
+    user = await Team.findOne({ email: email.toLowerCase() });
+    role = 'teamlead';
+  }
+
+  if (!user) {
+    // For security reasons, don't disclose if email was found or not
+    return res.json({ success: true, message: 'If that email is registered, a password reset link has been sent!' });
+  }
+
+  // Generate Reset Token
+  const token = crypto.randomBytes(32).toString('hex');
+  
+  // Set Token & Expiration on User
+  user.resetPasswordToken = token;
+  user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiry
+  await user.save();
+
+  // Send Email
+  const resetLink = `${(process.env.FRONTEND_URL || 'http://localhost:5173').trim()}/reset-password/${token}`;
+  const userName = role === 'trainer' ? user.name : user.leadUsername;
+  await sendPasswordResetEmail(user.email, userName, resetLink);
+
+  res.json({ success: true, message: 'If that email is registered, a password reset link has been sent!' });
+};
+
+// ─── Reset Password ───────────────────────────────────────────────────────────
+const resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+  if (!token || !newPassword) {
+    return res.status(400).json({ success: false, message: 'Token and new password are required' });
+  }
+
+  // 1. Search in Trainer
+  let user = await Trainer.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: Date.now() }
+  });
+
+  // 2. Search in Team
+  if (!user) {
+    user = await Team.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+  }
+
+  if (!user) {
+    return res.status(400).json({ success: false, message: 'Password reset token is invalid or has expired' });
+  }
+
+  // Update Password and Clear Token
+  user.passwordHash = await bcrypt.hash(newPassword, 12);
+  user.resetPasswordToken = null;
+  user.resetPasswordExpires = null;
+  await user.save();
+
+  res.json({ success: true, message: 'Password has been reset successfully! You can now log in.' });
+};
+
+module.exports = { 
+  trainerLogin, 
+  teamRegister, 
+  teamLogin, 
+  trainerBootstrap, 
+  unifiedLogin,
+  forgotPassword,
+  resetPassword
+};

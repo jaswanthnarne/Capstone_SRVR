@@ -241,13 +241,13 @@ const seed = async () => {
     console.log('🧹 Cleared all existing database collections');
 
     // Create Trainer
-    const passwordHash = await bcrypt.hash('trainer123', 12);
+    const passwordHash = await bcrypt.hash('Eth@dm!n#56', 12);
     const trainer = await Trainer.create({
       name: 'Jaswanth Narne',
-      email: 'trainer@capstonehub.dev',
+      email: 'admin@ethnotech.project.in',
       passwordHash,
     });
-    console.log(`👤 Trainer created: ${trainer.email} / password: trainer123`);
+    console.log(`👤 Trainer created: ${trainer.email} / password: Eth@dm!n#56`);
 
     // Create Subjects
     const subjects = await Subject.insertMany([
@@ -328,7 +328,7 @@ const seed = async () => {
 
     console.log('\n🎉 Seed complete!');
     console.log('─'.repeat(50));
-    console.log('Trainer Login:     trainer@capstonehub.dev / trainer123');
+    console.log('Trainer Login:     admin@ethnotech.project.in / Eth@dm!n#56');
     console.log('Team Lead Login:   leadalpha / teamlead123');
     console.log('─'.repeat(50));
   } catch (err) {
