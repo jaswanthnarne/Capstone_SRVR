@@ -232,7 +232,7 @@ const forgotPassword = async (req, res) => {
   // Send Email
   const resetLink = `${(process.env.FRONTEND_URL || 'http://localhost:5173').trim()}/reset-password/${token}`;
   const userName = role === 'trainer' ? user.name : user.leadUsername;
-  await sendPasswordResetEmail(user.email, userName, resetLink);
+  sendPasswordResetEmail(user.email, userName, resetLink).catch(err => console.error("SMTP reset mail error:", err));
 
   res.json({ success: true, message: 'If that email is registered, a password reset link has been sent!' });
 };

@@ -10,6 +10,7 @@ const {
   getRequestSubmissions,
   deleteDocRequest,
   resetSubmissionLimit,
+  getTeamDocSubmissions,
 } = require('../controllers/docRequest.controller');
 
 // Trainer routes
@@ -18,6 +19,7 @@ router.post('/trainer', authenticate, requireRole('trainer'), createDocRequest);
 router.delete('/trainer/:id', authenticate, requireRole('trainer'), deleteDocRequest);
 router.get('/trainer/submissions/:requestId', authenticate, requireRole('trainer'), getRequestSubmissions);
 router.post('/trainer/reset', authenticate, requireRole('trainer'), resetSubmissionLimit);
+router.get('/trainer/team-submissions/:teamId', authenticate, requireRole('trainer'), getTeamDocSubmissions);
 
 // Team lead routes
 router.get('/team', authenticate, requireRole('teamlead'), getTeamDocRequests);

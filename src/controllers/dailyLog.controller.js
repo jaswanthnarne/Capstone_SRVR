@@ -105,9 +105,67 @@ const resetDailyLogLimit = async (req, res) => {
   }
 };
 
+// Trainer/Admin: Grade a daily log (assign score)
+const gradeDailyLog = async (req, res) => {
+  try {
+    if (req.user.role !== 'trainer') {
+      return res.status(403).json({ success: false, message: 'Only trainers can grade logs' });
+    }
+
+    const { teamId, date, score } = req.body;
+    if (!teamId || !date || score === undefined) {
+      return res.status(400).json({ success: false, message: 'teamId, date, and score are required' });
+    }
+
+    const log = await DailyLog.findOneAndUpdate(
+      { teamId, date },
+      { $set: { score: Number(score) } },
+      { new: true }
+    );
+
+    if (!log) {
+      return res.status(404).json({ success: false, message: 'Daily log not found for this date and team' });
+    }
+
+    res.status(200).json({ success: true, message: 'Daily log graded successfully.', data: log });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Trainer/Admin: Release or hide daily log score
+const releaseDailyLogScore = async (req, res) => {
+  try {
+    if (req.user.role !== 'trainer') {
+      return res.status(403).json({ success: false, message: 'Only trainers can release log scores' });
+    }
+
+    const { teamId, date, isScoreReleased } = req.body;
+    if (!teamId || !date || isScoreReleased === undefined) {
+      return res.status(400).json({ success: false, message: 'teamId, date, and isScoreReleased are required' });
+    }
+
+    const log = await DailyLog.findOneAndUpdate(
+      { teamId, date },
+      { $set: { isScoreReleased: Boolean(isScoreReleased) } },
+      { new: true }
+    );
+
+    if (!log) {
+      return res.status(404).json({ success: false, message: 'Daily log not found for this date and team' });
+    }
+
+    res.status(200).json({ success: true, message: isScoreReleased ? 'Daily log score released successfully.' : 'Daily log score hidden successfully.', data: log });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   saveDailyLog,
   getMyDailyLogs,
   getTeamDailyLogs,
   resetDailyLogLimit,
+  gradeDailyLog,
+  releaseDailyLogScore,
 };

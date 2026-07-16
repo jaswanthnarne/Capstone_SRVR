@@ -235,6 +235,24 @@ const resetSubmissionLimit = async (req, res) => {
   }
 };
 
+// Trainer: Get all document submissions for a specific team
+const getTeamDocSubmissions = async (req, res) => {
+  try {
+    if (req.user.role !== 'trainer') {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const { teamId } = req.params;
+    const submissions = await DocSubmission.find({ teamId })
+      .populate('requestId', 'title fileType description')
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({ success: true, data: submissions });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   createDocRequest,
   getTrainerDocRequests,
@@ -243,4 +261,5 @@ module.exports = {
   getRequestSubmissions,
   deleteDocRequest,
   resetSubmissionLimit,
+  getTeamDocSubmissions,
 };
