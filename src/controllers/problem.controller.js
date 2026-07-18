@@ -3,6 +3,7 @@ const ProblemLock = require('../models/ProblemLock');
 const Team = require('../models/Team');
 const Batch = require('../models/Batch');
 const Milestone = require('../models/Milestone');
+const Subject = require('../models/Subject');
 
 // ─── Trainer: CRUD for problem pool ──────────────────────────────────────────
 const getProblems = async (req, res) => {
@@ -67,6 +68,9 @@ const getAvailableProblems = async (req, res) => {
   if (!team) return res.status(401).json({ success: false, message: 'Team account no longer exists. Please log in again.' });
 
   const batch = team.batchId;
+  if (!batch) {
+    return res.status(400).json({ success: false, message: 'Your team is not assigned to any batch. Please contact your trainer.' });
+  }
 
   // Get all locked problems in this batch
   const locks = await ProblemLock.find({ batchId: batch._id });

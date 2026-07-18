@@ -23,8 +23,15 @@ const docRequestRoutes = require('./src/routes/docRequest.routes');
 
 const app = express();
 
-// Connect to MongoDB
-connectDB();
+// Connect to MongoDB and register connection middleware
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // Middleware
 app.use(helmet());
