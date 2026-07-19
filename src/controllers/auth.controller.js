@@ -129,6 +129,7 @@ const teamLogin = async (req, res) => {
       batchId: team.batchId,
       collegeId: team.collegeId,
       status: team.status,
+      mustChangePassword: team.mustChangePassword || false,
     },
   });
 };
@@ -209,6 +210,7 @@ const unifiedLogin = async (req, res) => {
           batchId: team.batchId,
           collegeId: team.collegeId,
           status: team.status,
+          mustChangePassword: team.mustChangePassword || false,
         },
       });
     }
@@ -289,6 +291,33 @@ const resetPassword = async (req, res) => {
   res.json({ success: true, message: 'Password has been reset successfully! You can now log in.' });
 };
 
+// ─── Change First-Time Password ───────────────────────────────────────────────
+const changeFirstPassword = async (req, res) => {
+  try {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+    }
+
+    if (req.user.role !== 'teamlead') {
+      return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
+
+    const team = await Team.findById(req.user.id);
+    if (!team) {
+      return res.status(404).json({ success: false, message: 'Team not found' });
+    }
+
+    team.passwordHash = await bcrypt.hash(newPassword, 12);
+    team.mustChangePassword = false;
+    await team.save();
+
+    res.json({ success: true, message: 'Password updated successfully!' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = { 
   trainerLogin, 
   teamRegister, 
@@ -296,5 +325,6 @@ module.exports = {
   trainerBootstrap, 
   unifiedLogin,
   forgotPassword,
-  resetPassword
+  resetPassword,
+  changeFirstPassword
 };
