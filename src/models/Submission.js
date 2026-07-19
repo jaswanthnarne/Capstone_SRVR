@@ -8,11 +8,8 @@ const submissionSchema = new mongoose.Schema(
     githubUrl: {
       type: String,
       required: true,
-      validate: {
-        validator: (v) => /^https?:\/\/(www\.)?github\.com\/[^/]+\/[^/]+/.test(v),
-        message: 'Must be a valid GitHub repository URL',
-      },
     },
+    backendGithubUrl: { type: String, default: '' },
     deployedUrl: { type: String, default: '' },
     docFilePath: { type: String, default: '' }, // Cloudinary URL
     demoVideoUrl: { type: String, default: '' },

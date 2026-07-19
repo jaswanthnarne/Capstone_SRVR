@@ -4,10 +4,10 @@ const Batch = require('../models/Batch');
 
 // Team Lead: submit final deliverables
 const createSubmission = async (req, res) => {
-  const { githubUrl, deployedUrl, demoVideoUrl } = req.body;
+  const { githubUrl, backendGithubUrl, deployedUrl, demoVideoUrl } = req.body;
 
   if (!githubUrl)
-    return res.status(400).json({ success: false, message: 'GitHub URL is required' });
+    return res.status(400).json({ success: false, message: 'Frontend/UI GitHub URL is required' });
 
   const team = await Team.findById(req.user.teamId).populate('batchId');
   if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
@@ -41,6 +41,7 @@ const createSubmission = async (req, res) => {
     batchId: team.batchId._id,
     collegeId: team.collegeId,
     githubUrl,
+    backendGithubUrl: backendGithubUrl || '',
     deployedUrl: deployedUrl || '',
     docFilePath,
     demoVideoUrl: demoVideoUrl || '',
