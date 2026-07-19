@@ -178,6 +178,34 @@ const getAllDailyLogs = async (req, res) => {
   }
 };
 
+// Trainer/Admin: Override daily logs of a team for a specific date
+const overrideDailyLog = async (req, res) => {
+  try {
+    if (req.user.role !== 'trainer') {
+      return res.status(403).json({ success: false, message: 'Only trainers can override daily logs' });
+    }
+
+    const { teamId, date, logs } = req.body;
+    if (!teamId || !date || !logs || !Array.isArray(logs)) {
+      return res.status(400).json({ success: false, message: 'teamId, date, and logs array are required' });
+    }
+
+    const dailyLog = await DailyLog.findOneAndUpdate(
+      { teamId, date },
+      { 
+        $set: { 
+          logs: logs.map(l => ({ name: l.name, rollNumber: l.rollNumber, taskDone: l.taskDone }))
+        }
+      },
+      { new: true, upsert: true }
+    );
+
+    res.status(200).json({ success: true, message: 'Daily log overridden successfully.', data: dailyLog });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   saveDailyLog,
   getMyDailyLogs,
@@ -186,4 +214,5 @@ module.exports = {
   gradeDailyLog,
   releaseDailyLogScore,
   getAllDailyLogs,
+  overrideDailyLog,
 };

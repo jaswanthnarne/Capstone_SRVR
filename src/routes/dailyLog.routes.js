@@ -9,6 +9,7 @@ const {
   gradeDailyLog,
   releaseDailyLogScore,
   getAllDailyLogs,
+  overrideDailyLog,
 } = require('../controllers/dailyLog.controller');
 
 router.post('/', authenticate, requireRole('teamlead'), saveDailyLog);
@@ -18,5 +19,6 @@ router.post('/trainer/reset', authenticate, requireRole('trainer'), resetDailyLo
 router.post('/trainer/grade', authenticate, requireRole('trainer'), gradeDailyLog);
 router.post('/trainer/release', authenticate, requireRole('trainer'), releaseDailyLogScore);
 router.get('/all', authenticate, requireRole('trainer'), getAllDailyLogs);
+router.post('/trainer/override', authenticate, requireRole('trainer'), overrideDailyLog);
 
 module.exports = router;
