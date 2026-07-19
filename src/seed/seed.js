@@ -296,7 +296,6 @@ const seed = async () => {
 
     // Create Problem Statements
     const jfsSubjectId = subjects[0]._id;
-    const mernSubjectId = subjects[2]._id;
 
     const jfsProblems = await ProblemStatement.insertMany(
       JAVA_FULL_STACK_PROBLEMS.map((p) => ({
@@ -307,16 +306,6 @@ const seed = async () => {
       }))
     );
     console.log(`💡 Created ${jfsProblems.length} Java Full Stack problem statements`);
-
-    const mernProblems = await ProblemStatement.insertMany(
-      JAVA_FULL_STACK_PROBLEMS.map((p) => ({
-        ...p,
-        subjectId: mernSubjectId,
-        trainerId: trainer._id,
-        isGlobal: false,
-      }))
-    );
-    console.log(`💡 Created ${mernProblems.length} MERN Stack problem statements`);
 
     // Create a Sample Team Lead Account
     const leadPassHash = await bcrypt.hash('teamlead123', 12);
