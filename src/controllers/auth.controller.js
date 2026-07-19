@@ -25,12 +25,21 @@ const trainerLogin = async (req, res) => {
   if (!valid)
     return res.status(401).json({ success: false, message: 'Invalid credentials' });
 
-  const token = signToken({ id: trainer._id, role: 'trainer', name: trainer.name });
+  // Map both admin accounts to the primary admin ID for shared data access
+  let targetId = trainer._id;
+  if (trainer.email === 'admin@ethnotech.project.in' || trainer.email === 'narnejaswanth83@gmail.com') {
+    const primaryAdmin = await Trainer.findOne({ email: 'admin@ethnotech.project.in' });
+    if (primaryAdmin) {
+      targetId = primaryAdmin._id;
+    }
+  }
+
+  const token = signToken({ id: targetId, role: 'trainer', name: trainer.name });
 
   res.json({
     success: true,
     token,
-    user: { id: trainer._id, name: trainer.name, email: trainer.email, role: 'trainer' },
+    user: { id: targetId, name: trainer.name, email: trainer.email, role: 'trainer' },
   });
 };
 
@@ -158,11 +167,20 @@ const unifiedLogin = async (req, res) => {
   if (trainer) {
     const valid = await bcrypt.compare(password, trainer.passwordHash);
     if (valid) {
-      const token = signToken({ id: trainer._id, role: 'trainer', name: trainer.name });
+      // Map both admin accounts to the primary admin ID for shared data access
+      let targetId = trainer._id;
+      if (trainer.email === 'admin@ethnotech.project.in' || trainer.email === 'narnejaswanth83@gmail.com') {
+        const primaryAdmin = await Trainer.findOne({ email: 'admin@ethnotech.project.in' });
+        if (primaryAdmin) {
+          targetId = primaryAdmin._id;
+        }
+      }
+
+      const token = signToken({ id: targetId, role: 'trainer', name: trainer.name });
       return res.json({
         success: true,
         token,
-        user: { id: trainer._id, name: trainer.name, email: trainer.email, role: 'trainer' },
+        user: { id: targetId, name: trainer.name, email: trainer.email, role: 'trainer' },
       });
     }
   }
