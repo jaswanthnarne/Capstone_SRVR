@@ -20,6 +20,7 @@ const reportRoutes = require('./src/routes/report.routes');
 const trainerRoutes = require('./src/routes/trainer.routes');
 const dailyLogRoutes = require('./src/routes/dailyLog.routes');
 const docRequestRoutes = require('./src/routes/docRequest.routes');
+const mailLogRoutes = require('./src/routes/mailLog.routes');
 
 const app = express();
 
@@ -78,6 +79,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/trainer', trainerRoutes);
 app.use('/api/daily-logs', dailyLogRoutes);
 app.use('/api/doc-requests', docRequestRoutes);
+app.use('/api/mail-logs', mailLogRoutes);
 
 // Root routes
 app.get('/', (req, res) => {

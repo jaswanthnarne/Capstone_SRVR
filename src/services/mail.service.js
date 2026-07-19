@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const MailLog = require('../models/MailLog');
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
@@ -9,16 +10,25 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+const getBaseFrontendUrl = () => {
+  const envUrl = process.env.FRONTEND_URL ? process.env.FRONTEND_URL.trim() : '';
+  if (envUrl && !envUrl.includes('localhost')) {
+    return envUrl.replace(/\/$/, '');
+  }
+  return 'https://capstone.jaswanthnarne.online';
+};
+
 /**
  * Send credentials to Team Lead
  */
 const sendTLCredentials = async (email, username, password, projectName) => {
-  const loginLink = `${(process.env.FRONTEND_URL || 'http://localhost:5173').trim()}/login`;
-  
+  const loginLink = `${getBaseFrontendUrl()}/login`;
+  const subject = `Welcome to Ethnotech ProjectSpace — Team Lead Account Created`;
+
   const mailOptions = {
     from: `"Ethnotech ProjectSpace" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@capstonehub.dev'}>`,
     to: email,
-    subject: `Welcome to Ethnotech ProjectSpace — Team Lead Account Created`,
+    subject: subject,
     html: `
       <!DOCTYPE html>
       <html>
@@ -44,7 +54,7 @@ const sendTLCredentials = async (email, username, password, projectName) => {
             <span class="logo">Ethnotech ProjectSpace</span>
           </div>
           <h2>Welcome to your workspace!</h2>
-          <p>An administrator has created a **Team Lead** account for you in the Capstone Project: <strong>${projectName}</strong>.</p>
+          <p>An administrator has created a <strong>Team Lead</strong> account for you in the Capstone Project: <strong>${projectName}</strong>.</p>
           <p>Below are your generated credentials. Please keep them secure:</p>
           
           <div class="credentials">
@@ -74,16 +84,26 @@ const sendTLCredentials = async (email, username, password, projectName) => {
     if (process.env.SMTP_PASS) {
       await transporter.sendMail(mailOptions);
       console.log(`✉️ Email sent successfully to Team Lead: ${email}`);
+      await MailLog.create({
+        to: email,
+        subject,
+        type: 'tl_credentials',
+        status: 'sent',
+        metadata: { username, projectName }
+      }).catch(e => console.error('MailLog save error:', e));
     } else {
       throw new Error('SMTP_PASS not configured');
     }
   } catch (err) {
     console.error("❌ Nodemailer sendTLCredentials error details:", err);
-    console.log(`\n⚠️ [MAIL FALLBACK] Failed to send email via SMTP. Please note the credentials below:`);
-    console.log(`   To: ${email}`);
-    console.log(`   Username/LeadUsername: ${username}`);
-    console.log(`   Password: ${password}`);
-    console.log(`   Project: ${projectName}\n`);
+    await MailLog.create({
+      to: email,
+      subject,
+      type: 'tl_credentials',
+      status: 'failed',
+      error: err.message || 'SMTP delivery error',
+      metadata: { username, projectName }
+    }).catch(e => console.error('MailLog save error:', e));
   }
 };
 
@@ -91,10 +111,11 @@ const sendTLCredentials = async (email, username, password, projectName) => {
  * Send invitation to Team Member
  */
 const sendMemberInvitation = async (email, name, teamName, projectName, acceptLink) => {
+  const subject = `Invitation to Join Team: ${teamName}`;
   const mailOptions = {
     from: `"Ethnotech ProjectSpace" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@capstonehub.dev'}>`,
     to: email,
-    subject: `Invitation to Join Team: ${teamName}`,
+    subject: subject,
     html: `
       <!DOCTYPE html>
       <html>
@@ -143,14 +164,26 @@ const sendMemberInvitation = async (email, name, teamName, projectName, acceptLi
     if (process.env.SMTP_PASS) {
       await transporter.sendMail(mailOptions);
       console.log(`✉️ Invitation email sent successfully to: ${email}`);
+      await MailLog.create({
+        to: email,
+        subject,
+        type: 'member_invitation',
+        status: 'sent',
+        metadata: { name, teamName, projectName }
+      }).catch(e => console.error('MailLog save error:', e));
     } else {
       throw new Error('SMTP_PASS not configured');
     }
   } catch (err) {
     console.error("❌ Nodemailer sendMemberInvitation error details:", err);
-    console.log(`\n⚠️ [MAIL FALLBACK] Failed to send invitation email via SMTP. Please note the link below:`);
-    console.log(`   To: ${email}`);
-    console.log(`   Link: ${acceptLink}\n`);
+    await MailLog.create({
+      to: email,
+      subject,
+      type: 'member_invitation',
+      status: 'failed',
+      error: err.message || 'SMTP delivery error',
+      metadata: { name, teamName, projectName }
+    }).catch(e => console.error('MailLog save error:', e));
   }
 };
 
@@ -158,10 +191,11 @@ const sendMemberInvitation = async (email, name, teamName, projectName, acceptLi
  * Send password reset link to user
  */
 const sendPasswordResetEmail = async (email, name, resetLink) => {
+  const subject = `Reset Your Password - Ethnotech ProjectSpace`;
   const mailOptions = {
     from: `"Ethnotech ProjectSpace" <${process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@capstonehub.dev'}>`,
     to: email,
-    subject: `Reset Your Password - Ethnotech ProjectSpace`,
+    subject: subject,
     html: `
       <!DOCTYPE html>
       <html>
@@ -212,13 +246,28 @@ const sendPasswordResetEmail = async (email, name, resetLink) => {
     if (process.env.SMTP_PASS) {
       await transporter.sendMail(mailOptions);
       console.log(`✉️ Password reset email sent successfully to: ${email}`);
+      await MailLog.create({
+        to: email,
+        subject,
+        type: 'password_reset',
+        status: 'sent',
+        metadata: { name }
+      }).catch(e => console.error('MailLog save error:', e));
     } else {
       throw new Error('SMTP_PASS not configured');
     }
   } catch (err) {
     console.error("❌ Nodemailer sendPasswordResetEmail error:", err);
-    console.log(`\n⚠️ [MAIL FALLBACK] Failed to send password reset email. Reset link: ${resetLink}\n`);
+    await MailLog.create({
+      to: email,
+      subject,
+      type: 'password_reset',
+      status: 'failed',
+      error: err.message || 'SMTP delivery error',
+      metadata: { name }
+    }).catch(e => console.error('MailLog save error:', e));
   }
 };
 
-module.exports = { sendTLCredentials, sendMemberInvitation, sendPasswordResetEmail };
+module.exports = { sendTLCredentials, sendMemberInvitation, sendPasswordResetEmail, getBaseFrontendUrl };
+
