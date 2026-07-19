@@ -24,39 +24,25 @@ const mailLogRoutes = require('./src/routes/mailLog.routes');
 
 const app = express();
 
-// 1. CORS Headers and Preflight OPTIONS (Must be mounted first!)
+// 1. Universal CORS middleware (First line of execution)
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    process.env.FRONTEND_URL,
-    'https://capstone.jaswanthnarne.online',
-    'https://frontend-jaswanth-s.vercel.app',
-    'http://localhost:5173',
-    'http://localhost:5174',
-    'http://localhost:5175'
-  ].map(o => o ? o.trim() : '').filter(Boolean);
-
-  if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app') || origin.endsWith('jaswanthnarne.online') || origin.startsWith('http://localhost:')) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Access-Control-Allow-Origin, X-HTTP-Method-Override, Content-Type, Authorization, Accept');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-
   next();
 });
 
-app.use(cors({
-  origin: true,
-  credentials: true
-}));
+app.use(cors({ origin: true, credentials: true }));
+app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(morgan('dev'));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // 2. Connect to MongoDB middleware
 app.use(async (req, res, next) => {
@@ -64,15 +50,10 @@ app.use(async (req, res, next) => {
     await connectDB();
     next();
   } catch (err) {
-    next(err);
+    console.error("MongoDB Connection Warning:", err.message);
+    next();
   }
 });
-
-// Middleware
-app.use(helmet({ crossOriginResourcePolicy: false }));
-app.use(morgan('dev'));
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -105,7 +86,7 @@ app.get('/api/health', (req, res) => {
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("Global express error:", err);
   const status = err.statusCode || 500;
   const message = err.message || 'Internal Server Error';
   res.status(status).json({ success: false, message });
@@ -117,11 +98,10 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 CapstoneHub server running on port ${PORT}`);
-  console.log(`   Environment: ${process.env.NODE_ENV}`);
-});
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 CapstoneHub server running on port ${PORT}`);
+  });
+}
 
 module.exports = app;
-
-
