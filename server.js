@@ -24,7 +24,41 @@ const mailLogRoutes = require('./src/routes/mailLog.routes');
 
 const app = express();
 
-// Connect to MongoDB and register connection middleware
+// 1. CORS Headers and Preflight OPTIONS (Must be mounted first!)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'https://capstone.jaswanthnarne.online',
+    'https://frontend-jaswanth-s.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175'
+  ].map(o => o ? o.trim() : '').filter(Boolean);
+
+  if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app') || origin.endsWith('jaswanthnarne.online') || origin.startsWith('http://localhost:')) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+
+// 2. Connect to MongoDB middleware
 app.use(async (req, res, next) => {
   try {
     await connectDB();
@@ -35,32 +69,7 @@ app.use(async (req, res, next) => {
 });
 
 // Middleware
-app.use(helmet());
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    const allowedOrigins = [
-      process.env.FRONTEND_URL,
-      'https://capstone.jaswanthnarne.online',
-      'https://frontend-jaswanth-s.vercel.app',
-      'http://localhost:5173',
-      'http://localhost:5174',
-      'http://localhost:5175'
-    ].map(o => o ? o.trim() : '').filter(Boolean);
-
-    if (
-      allowedOrigins.indexOf(origin) !== -1 || 
-      origin.startsWith('http://localhost:') || 
-      origin.endsWith('.vercel.app') ||
-      origin.endsWith('jaswanthnarne.online')
-    ) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-}));
+app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
