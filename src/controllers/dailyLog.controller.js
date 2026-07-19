@@ -161,6 +161,23 @@ const releaseDailyLogScore = async (req, res) => {
   }
 };
 
+// Trainer/Admin: Get all daily work logs across all teams (for general export)
+const getAllDailyLogs = async (req, res) => {
+  try {
+    if (req.user.role !== 'trainer') {
+      return res.status(403).json({ success: false, message: 'Only trainers can view all logs' });
+    }
+
+    const logs = await DailyLog.find({})
+      .populate('teamId', 'name')
+      .sort({ date: -1 });
+
+    res.status(200).json({ success: true, data: logs });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 module.exports = {
   saveDailyLog,
   getMyDailyLogs,
@@ -168,4 +185,5 @@ module.exports = {
   resetDailyLogLimit,
   gradeDailyLog,
   releaseDailyLogScore,
+  getAllDailyLogs,
 };

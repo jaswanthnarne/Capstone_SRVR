@@ -8,6 +8,7 @@ const {
   resetDailyLogLimit,
   gradeDailyLog,
   releaseDailyLogScore,
+  getAllDailyLogs,
 } = require('../controllers/dailyLog.controller');
 
 router.post('/', authenticate, requireRole('teamlead'), saveDailyLog);
@@ -16,5 +17,6 @@ router.get('/team/:teamId', authenticate, requireRole('trainer'), getTeamDailyLo
 router.post('/trainer/reset', authenticate, requireRole('trainer'), resetDailyLogLimit);
 router.post('/trainer/grade', authenticate, requireRole('trainer'), gradeDailyLog);
 router.post('/trainer/release', authenticate, requireRole('trainer'), releaseDailyLogScore);
+router.get('/all', authenticate, requireRole('trainer'), getAllDailyLogs);
 
 module.exports = router;
