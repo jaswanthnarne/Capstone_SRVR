@@ -22,8 +22,8 @@ function testPreflight() {
     console.log("  Access-Control-Allow-Methods:", res.headers['access-control-allow-methods']);
     console.log("  Access-Control-Allow-Headers:", res.headers['access-control-allow-headers']);
 
-    if (res.statusCode === 200 && res.headers['access-control-allow-origin']) {
-      console.log("\n✅ CORS Preflight check PASSED! Production backend accepts preflights from capstone.jaswanthnarne.online");
+    if ((res.statusCode === 200 || res.statusCode === 204) && res.headers['access-control-allow-origin'] === 'https://capstone.jaswanthnarne.online') {
+      console.log("\n🎉 CORS Preflight check PASSED! Production backend accepts preflights from https://capstone.jaswanthnarne.online");
     } else {
       console.log("\n❌ CORS Preflight check failed");
     }
