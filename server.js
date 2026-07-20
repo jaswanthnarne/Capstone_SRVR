@@ -50,22 +50,49 @@ app.use((req, res, next) => {
   next();
 });
 
-// Routes
+// Routes - Registered with both /api/ and direct prefixes for bulletproof serverless routing
 app.use('/api/auth', authRoutes);
+app.use('/auth', authRoutes);
+
 app.use('/api/colleges', collegeRoutes);
+app.use('/colleges', collegeRoutes);
+
 app.use('/api/subjects', subjectRoutes);
+app.use('/subjects', subjectRoutes);
+
 app.use('/api/batches', batchRoutes);
+app.use('/batches', batchRoutes);
+
 app.use('/api/problems', problemRoutes);
+app.use('/problems', problemRoutes);
+
 app.use('/api/teams', teamRoutes);
+app.use('/teams', teamRoutes);
+
 app.use('/api/milestones', milestoneRoutes);
+app.use('/milestones', milestoneRoutes);
+
 app.use('/api/submission', submissionRoutes);
 app.use('/api/submissions', submissionRoutes);
+app.use('/submissions', submissionRoutes);
+
 app.use('/api/evaluations', evaluationRoutes);
+app.use('/evaluations', evaluationRoutes);
+
 app.use('/api/reports', reportRoutes);
+app.use('/reports', reportRoutes);
+
 app.use('/api/trainer', trainerRoutes);
+app.use('/trainer', trainerRoutes);
+
 app.use('/api/daily-logs', dailyLogRoutes);
+app.use('/daily-logs', dailyLogRoutes);
+
 app.use('/api/doc-requests', docRequestRoutes);
+app.use('/doc-requests', docRequestRoutes);
+
 app.use('/api/mail-logs', mailLogRoutes);
+app.use('/mail-logs', mailLogRoutes);
 
 // Root routes
 app.get('/', (req, res) => {
