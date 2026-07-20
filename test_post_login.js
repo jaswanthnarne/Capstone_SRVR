@@ -8,7 +8,7 @@ function testEndpoint(method) {
     });
 
     const options = {
-      hostname: 'backend-jaswanth-s.vercel.app',
+      hostname: 'backend-five-ivory-mbo6c3m4p1.vercel.app',
       path: '/api/auth/login',
       method: method,
       headers: {
@@ -18,7 +18,7 @@ function testEndpoint(method) {
       }
     };
 
-    console.log(`\n🔍 Sending HTTP ${method} to https://backend-jaswanth-s.vercel.app/api/auth/login ...`);
+    console.log(`\n🔍 Sending HTTP ${method} to https://backend-five-ivory-mbo6c3m4p1.vercel.app/api/auth/login ...`);
 
     const req = https.request(options, (res) => {
       let body = '';

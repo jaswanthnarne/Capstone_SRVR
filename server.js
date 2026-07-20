@@ -44,13 +44,18 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// 2. Non-blocking MongoDB connection trigger
-app.use((req, res, next) => {
-  connectDB().catch(err => console.error("MongoDB async connect warning:", err.message));
-  next();
+// 2. Await MongoDB connection for all data requests
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error("MongoDB connection error in middleware:", err.message);
+    res.status(500).json({ success: false, message: "Database connection failed. Please try again." });
+  }
 });
 
-// Routes - Registered with both /api/ and direct prefixes for bulletproof serverless routing
+// Routes - Registered with both /api/ and direct prefixes for serverless compatibility
 app.use('/api/auth', authRoutes);
 app.use('/auth', authRoutes);
 

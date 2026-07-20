@@ -3,14 +3,14 @@ const mongoose = require('mongoose');
 let cachedConnection = null;
 
 const connectDB = async () => {
-  if (mongoose.connection.readyState >= 1) {
+  if (mongoose.connection.readyState === 1) {
     return mongoose.connection;
   }
 
   if (!cachedConnection) {
-    console.log('🔄 Connecting to MongoDB...');
+    console.log('🔄 Connecting to MongoDB Atlas...');
     cachedConnection = mongoose.connect(process.env.MONGO_URI, {
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
       maxPoolSize: 10,
     }).then((conn) => {
       console.log(`✅ MongoDB connected: ${conn.connection.host}`);
