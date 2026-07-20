@@ -11,6 +11,7 @@ const connectDB = async () => {
     console.log('🔄 Connecting to MongoDB...');
     cachedConnection = mongoose.connect(process.env.MONGO_URI, {
       serverSelectionTimeoutMS: 5000,
+      maxPoolSize: 10,
     }).then((conn) => {
       console.log(`✅ MongoDB connected: ${conn.connection.host}`);
       return conn;
