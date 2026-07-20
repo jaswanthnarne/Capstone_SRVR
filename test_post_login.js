@@ -1,7 +1,7 @@
 const https = require('https');
 
 function testEndpoint(method) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const postData = JSON.stringify({
       usernameOrEmail: 'admin@ethnotech.project.in',
       password: 'Eth@dm!n#56'
@@ -26,14 +26,15 @@ function testEndpoint(method) {
       res.on('end', () => {
         console.log(`Status Code: ${res.statusCode} ${res.statusMessage}`);
         console.log(`Access-Control-Allow-Origin: ${res.headers['access-control-allow-origin']}`);
-        console.log(`Body Snippet: ${body.substring(0, 150)}`);
+        console.log(`Access-Control-Allow-Credentials: ${res.headers['access-control-allow-credentials']}`);
+        console.log(`Body Snippet: ${body.substring(0, 200)}`);
         resolve({ status: res.statusCode, body });
       });
     });
 
     req.on('error', (e) => {
       console.error(`Request error: ${e.message}`);
-      reject(e);
+      resolve({ error: e });
     });
 
     if (method === 'POST') {
@@ -44,12 +45,8 @@ function testEndpoint(method) {
 }
 
 async function runTests() {
-  try {
-    await testEndpoint('OPTIONS');
-    await testEndpoint('POST');
-  } catch (err) {
-    console.error("Test failed:", err);
-  }
+  await testEndpoint('OPTIONS');
+  await testEndpoint('POST');
 }
 
 runTests();
