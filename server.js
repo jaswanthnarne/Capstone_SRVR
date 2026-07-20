@@ -44,15 +44,10 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// 2. Connect to MongoDB middleware
-app.use(async (req, res, next) => {
-  try {
-    await connectDB();
-    next();
-  } catch (err) {
-    console.error("MongoDB Connection Warning:", err.message);
-    next();
-  }
+// 2. Non-blocking MongoDB connection trigger
+app.use((req, res, next) => {
+  connectDB().catch(err => console.error("MongoDB async connect warning:", err.message));
+  next();
 });
 
 // Routes
@@ -97,5 +92,12 @@ app.use((err, req, res, next) => {
 app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
+
+const PORT = process.env.PORT || 5000;
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`🚀 CapstoneHub server running on port ${PORT}`);
+  });
+}
 
 module.exports = app;
