@@ -24,25 +24,27 @@ const mailLogRoutes = require('./src/routes/mailLog.routes');
 
 const app = express();
 
-const corsOptions = {
-  origin: function (origin, callback) {
-    callback(null, true);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-CSRF-Token'],
-  optionsSuccessStatus: 200
-};
+// 1. Preflight OPTIONS & CORS headers handler (Instant 200 OK for OPTIONS)
+app.use((req, res, next) => {
+  const origin = req.headers.origin || '*';
+  res.setHeader('Access-Control-Allow-Origin', origin);
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Access-Control-Allow-Origin, X-HTTP-Method-Override, Content-Type, Authorization, Accept, X-CSRF-Token');
 
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+  if (req.method === 'OPTIONS') {
+    return res.status(200).send('OK');
+  }
+  next();
+});
 
+app.use(cors({ origin: true, credentials: true }));
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(morgan('dev'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Connect to MongoDB middleware
+// 2. Connect to MongoDB middleware
 app.use(async (req, res, next) => {
   try {
     await connectDB();
