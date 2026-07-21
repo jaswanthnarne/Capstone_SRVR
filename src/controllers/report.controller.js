@@ -6,6 +6,8 @@ const Submission = require('../models/Submission');
 const Evaluation = require('../models/Evaluation');
 const Milestone = require('../models/Milestone');
 const ExcelJS = require('exceljs');
+const DailyLog = require('../models/DailyLog');
+
 
 // ─── 1. Batch Progress Report ────────────────────────────────────────────────
 const getBatchReport = async (req, res) => {
@@ -359,6 +361,8 @@ const exportBatchPDF = async (req, res) => {
     .populate('collegeId', 'name location')
     .populate('subjectId', 'name');
   
+  if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+
   const teams = await Team.find({ batchId })
     .populate('problemStatementId', 'title')
     .select('-passwordHash');
@@ -367,50 +371,119 @@ const exportBatchPDF = async (req, res) => {
   const submissionIds = submissions.map(s => s._id);
   const evaluations = await Evaluation.find({ submissionId: { $in: submissionIds } });
 
+  // Fetch Daily Logs for all teams in this batch
+  const dailyLogs = await DailyLog.find({ teamId: { $in: teams.map(t => t._id) } }).sort({ date: 1 });
+
   // Build simple HTML for PDF
   const html = `
     <!DOCTYPE html>
     <html>
     <head>
+      <meta charset="UTF-8">
       <style>
-        body { font-family: Arial, sans-serif; color: #222; padding: 30px; }
-        h1 { color: #3b5bdb; } h2 { color: #444; border-bottom: 1px solid #eee; }
-        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-        th { background: #3b5bdb; color: white; padding: 10px; text-align: left; }
-        td { padding: 8px; border-bottom: 1px solid #eee; }
-        tr:nth-child(even) { background: #f7f7f7; }
-        .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+        body { font-family: Arial, sans-serif; color: #1e293b; padding: 20px; line-height: 1.4; }
+        h1 { color: #0b5394; border-bottom: 2px solid #0b5394; padding-bottom: 8px; font-size: 20pt; margin-bottom: 15px; }
+        h2 { color: #0b5394; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; font-size: 14pt; margin-top: 30px; margin-bottom: 10px; }
+        h3 { color: #1e293b; font-size: 11pt; margin-top: 20px; margin-bottom: 8px; border-left: 4px solid #3b82f6; padding-left: 8px; }
+        p { margin: 4px 0; font-size: 9.5pt; color: #475569; }
+        .meta-container { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; border-radius: 4px; margin-bottom: 20px; }
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px; font-size: 9pt; }
+        th { background: #0b5394; color: white; padding: 8px 10px; text-align: left; font-weight: bold; border: 1px solid #0b5394; }
+        td { padding: 6px 10px; border: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+        tr:nth-child(even) { background: #f8fafc; }
+        .badge { padding: 2px 8px; border-radius: 12px; font-size: 8px; font-weight: bold; display: inline-block; text-transform: uppercase; }
         .submitted { background: #d3f9d8; color: #2b8a3e; }
         .in_progress { background: #fff3bf; color: #856404; }
         .problem_pending { background: #dee2e6; color: #495057; }
+        .link-text { color: #2563eb; text-decoration: none; word-break: break-all; }
+        .link-text:hover { text-decoration: underline; }
       </style>
     </head>
     <body>
       <h1>📋 Batch Progress Report</h1>
-      <p><strong>Batch:</strong> ${batch?.name}</p>
-      <p><strong>College:</strong> ${batch?.collegeId?.name}</p>
-      <p><strong>Subject:</strong> ${batch?.subjectId?.name}</p>
-      <p><strong>Period:</strong> ${batch?.startDate?.toLocaleDateString()} – ${batch?.endDate?.toLocaleDateString()}</p>
-      <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
-      <h2>Teams</h2>
+      <div class="meta-container">
+        <div class="meta-grid">
+          <div>
+            <p><strong>Batch:</strong> ${batch?.name}</p>
+            <p><strong>College:</strong> ${batch?.collegeId?.name} (${batch?.collegeId?.location || '—'})</p>
+            <p><strong>Subject:</strong> ${batch?.subjectId?.name || '—'}</p>
+          </div>
+          <div>
+            <p><strong>Period:</strong> ${batch?.startDate ? new Date(batch.startDate).toLocaleDateString() : '—'} – ${batch?.endDate ? new Date(batch.endDate).toLocaleDateString() : '—'}</p>
+            <p><strong>Generated:</strong> ${new Date().toLocaleString()}</p>
+            <p><strong>Total Teams:</strong> ${teams.length}</p>
+          </div>
+        </div>
+      </div>
+      
+      <h2>Teams Overview & Submission URLs</h2>
       <table>
         <tr>
-          <th>Team</th><th>Lead</th><th>Members</th>
-          <th>Problem</th><th>Status</th><th>Score</th>
+          <th>Team Name</th>
+          <th>Lead</th>
+          <th>Problem Statement</th>
+          <th>Status</th>
+          <th>Score</th>
+          <th>Repository & Deployment Links</th>
         </tr>
         ${teams.map(t => {
           const sub = submissions.find(s => s.teamId.toString() === t._id.toString());
           const ev = sub ? evaluations.find(e => e.submissionId.toString() === sub._id.toString()) : null;
+          
+          let linksHtml = "—";
+          if (sub) {
+            linksHtml = `
+              <div style="margin-bottom: 2px;"><strong>Frontend:</strong> <a class="link-text" href="${sub.githubUrl}" target="_blank">${sub.githubUrl}</a></div>
+              ${sub.backendGithubUrl ? `<div style="margin-bottom: 2px;"><strong>Backend:</strong> <a class="link-text" href="${sub.backendGithubUrl}" target="_blank">${sub.backendGithubUrl}</a></div>` : ''}
+              ${sub.deployedUrl ? `<div><strong>Deployed:</strong> <a class="link-text" href="${sub.deployedUrl}" target="_blank">${sub.deployedUrl}</a></div>` : ''}
+            `;
+          }
+          
           return `<tr>
-            <td>${t.name}</td>
+            <td><strong>${t.name}</strong></td>
             <td>${t.leadUsername}</td>
-            <td>${t.members?.length || 0}</td>
             <td>${t.problemStatementId?.title || '—'}</td>
             <td><span class="badge ${t.status}">${t.status}</span></td>
-            <td>${ev ? ev.score + '/100' : '—'}</td>
+            <td><strong>${ev ? ev.score + '/100' : '—'}</strong></td>
+            <td>${linksHtml}</td>
           </tr>`;
         }).join('')}
       </table>
+      
+      <h2>Daily Logs of the Teams</h2>
+      ${teams.map(t => {
+        const teamLogs = dailyLogs.filter(log => log.teamId.toString() === t._id.toString());
+        if (teamLogs.length === 0) {
+          return `
+            <h3>Team: ${t.name}</h3>
+            <p style="font-style: italic; margin-bottom: 20px;">No daily logs submitted for this team.</p>
+          `;
+        }
+        return `
+          <h3>Team: ${t.name}</h3>
+          <table>
+            <tr>
+              <th style="width: 100px;">Date</th>
+              <th style="width: 150px;">Student Name</th>
+              <th style="width: 100px;">Roll Number</th>
+              <th>Task Done</th>
+              <th style="width: 80px;">Log Score</th>
+            </tr>
+            ${teamLogs.map(log => {
+              return log.logs.map((memberLog, idx) => `
+                <tr>
+                  ${idx === 0 ? `<td rowspan="${log.logs.length}" style="font-weight: bold; background-color: #fafafa; border-bottom: 1px solid #cbd5e1;">${log.date}</td>` : ''}
+                  <td style="border-bottom: 1px solid #e2e8f0;">${memberLog.name}</td>
+                  <td style="border-bottom: 1px solid #e2e8f0;">${memberLog.rollNumber}</td>
+                  <td style="border-bottom: 1px solid #e2e8f0;">${memberLog.taskDone || '—'}</td>
+                  ${idx === 0 ? `<td rowspan="${log.logs.length}" style="font-weight: bold; background-color: #fafafa; text-align: center; border-bottom: 1px solid #cbd5e1; vertical-align: middle;">${log.score !== null && log.score !== undefined ? log.score : '—'}</td>` : ''}
+                </tr>
+              `).join('');
+            }).join('')}
+          </table>
+        `;
+      }).join('')}
     </body>
     </html>
   `;
@@ -432,6 +505,7 @@ const exportBatchPDF = async (req, res) => {
     res.send(html);
   }
 };
+
 
 module.exports = {
   getBatchReport, getCollegeReport, getTeamReport, getPortfolioReport,

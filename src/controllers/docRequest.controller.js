@@ -1,6 +1,7 @@
 const DocRequest = require('../models/DocRequest');
 const DocSubmission = require('../models/DocSubmission');
 const Team = require('../models/Team');
+const { cloudinary } = require('../config/cloudinary');
 
 // Trainer: Create a document request
 const createDocRequest = async (req, res) => {
@@ -93,14 +94,14 @@ const getTeamDocRequests = async (req, res) => {
   }
 };
 
-// Team Lead: Submit document
+// Team Lead: Submit document (Supports multipart req.file and base64 req.body.fileData to prevent Vercel 413 errors)
 const submitDoc = async (req, res) => {
   try {
     if (req.user.role !== 'teamlead') {
       return res.status(403).json({ success: false, message: 'Forbidden' });
     }
 
-    const { requestId } = req.body;
+    const { requestId, fileName: bodyFileName, fileData, fileUrl: bodyFileUrl, fileSize: bodyFileSize } = req.body;
     if (!requestId) {
       return res.status(400).json({ success: false, message: 'requestId is required' });
     }
@@ -108,10 +109,6 @@ const submitDoc = async (req, res) => {
     const docRequest = await DocRequest.findById(requestId);
     if (!docRequest) {
       return res.status(404).json({ success: false, message: 'Document request not found' });
-    }
-
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
     // Enforce modification limit (Max 3 uploads/changes)
@@ -123,7 +120,30 @@ const submitDoc = async (req, res) => {
       });
     }
 
-    const fileSizeInMB = req.file.size / (1024 * 1024);
+    let fileUrl = '';
+    let fileName = bodyFileName || 'submitted_document';
+    let fileSizeInMB = 0;
+
+    if (req.file) {
+      fileUrl = req.file.path;
+      fileName = req.file.originalname;
+      fileSizeInMB = req.file.size / (1024 * 1024);
+    } else if (fileData) {
+      // Base64 upload direct to Cloudinary for docx / pdf files to bypass Vercel 4.5MB payload limits
+      const uploadRes = await cloudinary.uploader.upload(fileData, {
+        folder: 'capstonehub/docs',
+        resource_type: 'raw',
+        public_id: `${Date.now()}_${fileName.replace(/[^a-z0-9]/gi, '_')}`
+      });
+      fileUrl = uploadRes.secure_url;
+      fileSizeInMB = bodyFileSize ? parseFloat(bodyFileSize) : 1.0;
+    } else if (bodyFileUrl) {
+      fileUrl = bodyFileUrl;
+      fileSizeInMB = bodyFileSize ? parseFloat(bodyFileSize) : 1.0;
+    } else {
+      return res.status(400).json({ success: false, message: 'No document file uploaded or provided.' });
+    }
+
     if (fileSizeInMB > docRequest.maxSize) {
       return res.status(400).json({ 
         success: false, 
@@ -132,7 +152,7 @@ const submitDoc = async (req, res) => {
     }
 
     // Check file type extension matching docRequest.fileType
-    const ext = req.file.originalname.split('.').pop().toLowerCase();
+    const ext = fileName.split('.').pop().toLowerCase();
     if (docRequest.fileType !== 'any') {
       let allowed = false;
       if (docRequest.fileType === 'pdf' && ext === 'pdf') allowed = true;
@@ -152,8 +172,8 @@ const submitDoc = async (req, res) => {
       { requestId, teamId: req.user.id },
       {
         $set: {
-          fileUrl: req.file.path,
-          fileName: req.file.originalname,
+          fileUrl,
+          fileName,
           fileSize: parseFloat(fileSizeInMB.toFixed(2))
         },
         $inc: { changeCount: 1 }
@@ -163,7 +183,8 @@ const submitDoc = async (req, res) => {
 
     res.status(200).json({ success: true, data: submission });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error("submitDoc error:", err);
+    res.status(500).json({ success: false, message: err.message || 'Failed to submit document' });
   }
 };
 
