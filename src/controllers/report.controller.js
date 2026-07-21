@@ -258,93 +258,147 @@ const getPortfolioReport = async (req, res) => {
 
 // ─── 5. Student-level Excel Export ────────────────────────────────────────────
 const getStudentExport = async (req, res) => {
-  const trainerId = req.user.id;
   const filter = {};
   if (req.query.batchId) filter.batchId = new mongoose.Types.ObjectId(req.query.batchId);
   if (req.query.collegeId) filter.collegeId = new mongoose.Types.ObjectId(req.query.collegeId);
 
-  const teams = await Team.aggregate([
-    { $match: filter },
-    {
-      $lookup: {
-        from: 'colleges',
-        localField: 'collegeId',
-        foreignField: '_id',
-        as: 'college',
-      },
-    },
-    { $unwind: '$college' },
-    {
-      $lookup: {
-        from: 'batches',
-        localField: 'batchId',
-        foreignField: '_id',
-        as: 'batch',
-      },
-    },
-    { $unwind: '$batch' },
-    {
-      $lookup: {
-        from: 'problemstatements',
-        localField: 'problemStatementId',
-        foreignField: '_id',
-        as: 'problem',
-      },
-    },
-    { $unwind: { path: '$problem', preserveNullAndEmptyArrays: true } },
-    {
-      $lookup: {
-        from: 'submissions',
-        localField: '_id',
-        foreignField: 'teamId',
-        as: 'submission',
-      },
-    },
-    { $unwind: { path: '$submission', preserveNullAndEmptyArrays: true } },
-    {
-      $lookup: {
-        from: 'evaluations',
-        localField: 'submission._id',
-        foreignField: 'submissionId',
-        as: 'evaluation',
-      },
-    },
-    { $unwind: { path: '$evaluation', preserveNullAndEmptyArrays: true } },
-    { $unwind: '$members' },
-    {
-      $project: {
-        studentName: '$members.name',
-        rollNumber: '$members.rollNumber',
-        teamName: '$name',
-        college: '$college.name',
-        batch: '$batch.name',
-        problemTitle: { $ifNull: ['$problem.title', 'Not Selected'] },
-        githubUrl: { $ifNull: ['$submission.githubUrl', ''] },
-        score: { $ifNull: ['$evaluation.score', ''] },
-        status: 1,
-      },
-    },
-  ]);
+  // Fetch the data
+  const teams = await Team.find(filter)
+    .populate('batchId', 'name')
+    .populate('collegeId', 'name')
+    .populate('problemStatementId', 'title')
+    .select('-passwordHash');
+
+  const submissions = await Submission.find(filter);
+  const evaluations = await Evaluation.find(filter);
+  const dailyLogs = await DailyLog.find({ teamId: { $in: teams.map(t => t._id) } }).sort({ date: 1 });
 
   const workbook = new ExcelJS.Workbook();
-  const sheet = workbook.addWorksheet('Students');
-  sheet.columns = [
-    { header: 'Student Name', key: 'studentName', width: 25 },
-    { header: 'Roll Number', key: 'rollNumber', width: 15 },
-    { header: 'Team', key: 'teamName', width: 20 },
+
+  // 1. Overview / Summary Worksheet
+  const summarySheet = workbook.addWorksheet('Overview');
+  summarySheet.columns = [
+    { header: 'Team Name', key: 'teamName', width: 25 },
+    { header: 'Lead Name', key: 'leadName', width: 20 },
+    { header: 'Lead Username', key: 'leadUsername', width: 15 },
+    { header: 'Members Count', key: 'membersCount', width: 15 },
     { header: 'College', key: 'college', width: 25 },
     { header: 'Batch', key: 'batch', width: 15 },
     { header: 'Problem Statement', key: 'problemTitle', width: 30 },
-    { header: 'GitHub URL', key: 'githubUrl', width: 35 },
-    { header: 'Score', key: 'score', width: 10 },
     { header: 'Status', key: 'status', width: 15 },
+    { header: 'Final Score', key: 'score', width: 12 },
+    { header: 'Frontend Repo', key: 'frontendRepo', width: 35 },
+    { header: 'Backend Repo', key: 'backendRepo', width: 35 },
+    { header: 'Deployed App', key: 'deployedUrl', width: 35 }
   ];
 
-  // Header styling
-  sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-  sheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3B5BDB' } };
+  // Summary sheet header styling
+  summarySheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  summarySheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0B5394' } }; // Dark blue
 
-  teams.forEach((t) => sheet.addRow(t));
+  teams.forEach(t => {
+    const sub = submissions.find(s => s.teamId.toString() === t._id.toString());
+    const ev = sub ? evaluations.find(e => e.submissionId.toString() === sub._id.toString()) : null;
+    
+    summarySheet.addRow({
+      teamName: t.name,
+      leadName: t.leadName || '—',
+      leadUsername: t.leadUsername,
+      membersCount: (t.members?.length || 0) + 1,
+      college: t.collegeId?.name || '—',
+      batch: t.batchId?.name || '—',
+      problemTitle: t.problemStatementId?.title || 'Not Selected',
+      status: t.status,
+      score: ev ? ev.score : '—',
+      frontendRepo: sub ? sub.githubUrl : '',
+      backendRepo: sub ? sub.backendGithubUrl : '',
+      deployedUrl: sub ? sub.deployedUrl : ''
+    });
+  });
+
+  // 2. Individual Team Worksheets (each team on a separate sheet)
+  for (let i = 0; i < teams.length; i++) {
+    const t = teams[i];
+    const sub = submissions.find(s => s.teamId.toString() === t._id.toString());
+    const ev = sub ? evaluations.find(e => e.submissionId.toString() === sub._id.toString()) : null;
+    const teamLogs = dailyLogs.filter(log => log.teamId.toString() === t._id.toString());
+
+    // Excel sheet name limit is 31 chars. Remove invalid characters like :, \, /, ?, *, [, ]
+    let cleanSheetName = t.name.replace(/[:\\/?*\[\]]/g, '').substring(0, 30);
+    // Ensure uniqueness of sheet name in case of overlaps after truncation
+    let finalSheetName = cleanSheetName;
+    let count = 1;
+    while (workbook.getWorksheet(finalSheetName)) {
+      finalSheetName = `${cleanSheetName.substring(0, 27)} (${count++})`;
+    }
+
+    const teamSheet = workbook.addWorksheet(finalSheetName);
+
+    // Profile metadata headers
+    teamSheet.addRow(['TEAM PROFILE:', t.name]).font = { bold: true, size: 12 };
+    teamSheet.addRow(['Lead Developer:', `${t.leadName || '—'} (${t.leadUsername})`]);
+    teamSheet.addRow(['College / Campus:', t.collegeId?.name || '—']);
+    teamSheet.addRow(['Batch Name:', t.batchId?.name || '—']);
+    teamSheet.addRow(['Problem Statement:', t.problemStatementId?.title || 'Not Selected']);
+    teamSheet.addRow(['Capstone Status:', t.status.toUpperCase()]);
+    teamSheet.addRow(['Final Evaluation Score:', ev ? `${ev.score}/100` : 'Not Evaluated']);
+    
+    let linksStr = '—';
+    if (sub) {
+      const parts = [];
+      if (sub.githubUrl) parts.push(`Frontend: ${sub.githubUrl}`);
+      if (sub.backendGithubUrl) parts.push(`Backend: ${sub.backendGithubUrl}`);
+      if (sub.deployedUrl) parts.push(`Deployment: ${sub.deployedUrl}`);
+      linksStr = parts.join(' | ');
+    }
+    teamSheet.addRow(['Submission Links:', linksStr]);
+
+    teamSheet.addRow([]); // Blank row
+
+    // Team Members Table
+    teamSheet.addRow(['TEAM ROSTER:']).font = { bold: true, color: { argb: 'FF0B5394' } };
+    teamSheet.addRow(['Student Name', 'Roll Number', 'Role']).font = { bold: true };
+    
+    // Add lead
+    teamSheet.addRow([t.leadName || '—', t.usnRollNumber || '—', 'Team Lead']);
+    // Add other members
+    if (t.members && t.members.length > 0) {
+      t.members.forEach(m => {
+        teamSheet.addRow([m.name, m.rollNumber, 'Member']);
+      });
+    }
+
+    teamSheet.addRow([]); // Blank row
+
+    // Daily Work Logs Table
+    teamSheet.addRow(['DAILY WORK LOGS:']).font = { bold: true, color: { argb: 'FF0B5394' } };
+    const logsHeaderRow = teamSheet.addRow(['Date', 'Student Name', 'Roll Number', 'Task Completed', 'Log Score']);
+    logsHeaderRow.font = { bold: true };
+    logsHeaderRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE6F0FA' } }; // Light blue header
+
+    if (teamLogs.length === 0) {
+      teamSheet.addRow(['No daily logs submitted for this team.']);
+    } else {
+      teamLogs.forEach(log => {
+        log.logs.forEach(memberLog => {
+          teamSheet.addRow([
+            log.date,
+            memberLog.name,
+            memberLog.rollNumber,
+            memberLog.taskDone || '—',
+            log.score !== null && log.score !== undefined ? log.score : '—'
+          ]);
+        });
+      });
+    }
+
+    // Set standard columns width for readability
+    teamSheet.getColumn(1).width = 25;
+    teamSheet.getColumn(2).width = 25;
+    teamSheet.getColumn(3).width = 18;
+    teamSheet.getColumn(4).width = 45;
+    teamSheet.getColumn(5).width = 12;
+  }
 
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.setHeader('Content-Disposition', 'attachment; filename=students_export.xlsx');
