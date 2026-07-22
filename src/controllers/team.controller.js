@@ -259,7 +259,10 @@ const acceptInvitation = async (req, res) => {
 // Trainer: Admin overrides/updates any team parameters directly (override constraints)
 const adminOverrideTeam = async (req, res) => {
   const { id } = req.params;
-  const { name, leadUsername, password, email, members, problemStatementId, status } = req.body;
+  const {
+    name, leadUsername, password, email, members, problemStatementId, status,
+    leadName, usnRollNumber, mobile, dept, division, roomNumber, courseName
+  } = req.body;
 
   const team = await Team.findById(id);
   if (!team) return res.status(404).json({ success: false, message: 'Team not found' });
@@ -298,6 +301,13 @@ const adminOverrideTeam = async (req, res) => {
   if (status) {
     update.status = status;
   }
+  if (leadName !== undefined) update.leadName = leadName;
+  if (usnRollNumber !== undefined) update.usnRollNumber = usnRollNumber;
+  if (mobile !== undefined) update.mobile = mobile;
+  if (dept !== undefined) update.dept = dept;
+  if (division !== undefined) update.division = division;
+  if (roomNumber !== undefined) update.roomNumber = roomNumber;
+  if (courseName !== undefined) update.courseName = courseName;
 
   const updatedTeam = await Team.findByIdAndUpdate(
     id,
